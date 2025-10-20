@@ -58,3 +58,28 @@ def hide_message_in_image(image_path, message, output_path):
             break
     image.save(output_path)
     print(f"Message hidden in image and saved to {output_path}")
+
+def extract_message_from_image(image_path):
+    image = image.open(image_path)
+    image = image.convert('RGB')
+    pixels = image.load()
+    width, height = image.size
+    binary_message = ""
+    #Traverse through the pixels and extract the LSBs to reconstruct the binary message
+    for y in range(height):
+        for x in range(width):
+            r, g, b = pixels[x,y]
+            for color in (r, g, b):
+                binary_message += str(color & 1)  # Extract LSB
+                #The message is done when the delimiter is found
+                if binary_message[-16] == '1111111111111110':
+                    #Remove this marker from the message
+                    binary_message = binary_message[:-16]
+                    #Convert bits to characters
+                    characters = []
+                    for i in range(0, len(binary_message), 8):
+                        characters.append(binary_message[i:i+8])
+                    message = ''.join([chr(int(c, 2)) for c in characters]) #Converts the binary to an integer, to be converted to a characrter and added to the string
+                    return message
+    return None  # No message found
+    
