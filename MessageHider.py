@@ -98,7 +98,11 @@ def main():
     args = parser.parse_args()
 
     if args.command == "hide":
-        key = generate_key(args.key)
+        if not os.path.exists(args.key):
+            print("Encryption key not found. Generating a new key.")
+            key = generate_key(args.key)
+        else:
+            key = load_key(args.key)
         encrypted_message = encrypt_message(args.message, key)
         hide_message_in_image(args.image, encrypted_message, args.output)
     elif args.command == "reveal":
