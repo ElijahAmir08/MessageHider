@@ -60,7 +60,7 @@ def hide_message_in_image(image_path, message, output_path):
     print(f"Message hidden in image and saved to {output_path}")
 
 def extract_message_from_image(image_path):
-    image = image.open(image_path)
+    image = Image.open(image_path)
     image = image.convert('RGB')
     pixels = image.load()
     width, height = image.size
@@ -71,8 +71,8 @@ def extract_message_from_image(image_path):
             r, g, b = pixels[x,y]
             for color in (r, g, b):
                 binary_message += str(color & 1)  # Extract LSB
-                #The message is done when the delimiter is found
-                if binary_message[-16] == '1111111111111110':
+                #The message is done when specific marker is found
+                if binary_message[-16:] == '1111111111111110':
                     #Remove this marker from the message
                     binary_message = binary_message[:-16]
                     #Convert bits to characters
@@ -82,4 +82,34 @@ def extract_message_from_image(image_path):
                     message = ''.join([chr(int(c, 2)) for c in characters]) #Converts the binary to an integer, to be converted to a characrter and added to the string
                     return message
     return None  # No message found
-    
+def main():
+    parser = argparse.ArgumentParser(description = "Steganography Message Hider")
+    subparsers = parser.add_subparsers(dest="command", help = "Hide or Reveal")
+    #Commands to hide
+    hide_parser = subparsers.add_parser("hide", help="Hide a message in an image")
+    hide_parser.add_argument("-i", "--image", required=True, help="Path to the input image")
+    hide_parser.add_argument("-m", "--message", required=True, help="Message to hide")
+    hide_parser.add_argument("-o", "--output", required=True, help="Path to save the output image with hidden message")
+    hide_parser.add_argument("-k", "--key", default = "secret.key", help = "Path to the encryption key file (default: secret.key)")
+    #Commands to reveal
+    reveal_parser = subparsers.add_parser("reveal", help="Reveal a hidden message from an image")
+    reveal_parser.add_argument("-i", "--image", required=True, help="Path to the image with hidden message")
+    reveal_parser.add_argument("-k", "--key", default = "secret.key", help = "Path to the encryption key file (default: secret.key)")
+    args = parser.parse_args()
+
+    if args.command == "hide":
+        key = generate_key(args.key)
+        encrypted_message = encrypt_message(args.message, key)
+        hide_message_in_image(args.image, encrypted_message, args.output)
+    elif args.command == "reveal":
+        encrypted_message = extract_message_from_image(args.image)
+        if encrypted_message is None:
+            print("No hidden message found in the image.")
+        else:
+            key = load_key(args.key)
+            decrypted_message = decrypt_message(encrypted_message, key)
+            print("Hidden message: ", decrypted_message)
+    else:
+        parser.print_help()
+if __name__ == "__main__":
+    main()
